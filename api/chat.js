@@ -6,14 +6,9 @@ export default async function handler(req, res) {
 
   try {
     const { message, name } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ reply: "Mensaje vacío" });
-    }
-
     const text = message.toLowerCase();
 
-    // 🟢 RESPUESTAS BÁSICAS
+    // 💬 conversación normal
     if (text.includes("hola")) {
       return res.json({ reply: `Hola ${name || ""} 👋` });
     }
@@ -26,27 +21,22 @@ export default async function handler(req, res) {
       return res.json({ reply: `Chau ${name || ""} 👋` });
     }
 
-    // 🚆 RESPUESTAS DE TRENES
-    if (text.includes("ferrosur")) {
-      return res.json({
-        reply: `${name ? name + ", " : ""}Ferrosur Roca es una empresa de trenes de carga en Argentina que transporta cemento, piedra y granos por la red del Ferrocarril Roca.`
-      });
-    }
+    // 🔎 BUSCAR EN WIKIPEDIA
+    let wikiText = "";
 
-    if (text.includes("nca")) {
-      return res.json({
-        reply: `${name ? name + ", " : ""}NCA es una empresa privada de trenes de carga que opera en el centro del país.`
-      });
-    }
+    try {
+      const wikiRes = await fetch(
+        `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(message + " tren Argentina")}`
+      );
 
-    if (text.includes("metrovias")) {
-      return res.json({
-        reply: `${name ? name + ", " : ""}Metrovías operó el subte de Buenos Aires y la línea Urquiza.`
-      });
-    }
+      if (wikiRes.ok) {
+        const wikiData = await wikiRes.json();
+        wikiText = wikiData.extract || "";
+      }
+    } catch {}
 
-    // 🤖 IA fallback
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    // 🤖 IA (con info real)
+    const aiRes = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -54,12 +44,35 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-5-mini",
-        input: `Respondé sobre trenes argentinos de forma clara. Pregunta: ${message}`
+        input: `
+Sos FerroBloggers 🚆 experto en trenes argentinos.
+
+Información real encontrada:
+${wikiText}
+
+Pregunta: ${message}
+
+Reglas IMPORTANTES:
+- Respondé SIEMPRE algo útil
+- Nunca digas "no sé"
+- Explicá claro
+- Usá el nombre ${name || ""}
+- Solo hablá de trenes argentinos
+- Si falta info, completá con conocimiento general
+
+Ejemplo:
+"Ferrosur Roca es una empresa de carga..."
+`
       })
     });
 
-    const data = await response.json();
-    const reply = data.output?.[0]?.content?.[0]?.text || "Error IA 🚆";
+    const data = await aiRes.json();
+
+    let reply = data.output?.[0]?.content?.[0]?.text;
+
+    if (!reply) {
+      reply = `${name || ""}, eso está relacionado con trenes argentinos 🚆`;
+    }
 
     res.json({ reply });
 
