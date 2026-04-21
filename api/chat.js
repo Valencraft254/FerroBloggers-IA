@@ -8,57 +8,71 @@ export default async function handler(req, res) {
     const { message, name } = req.body;
     const text = message.toLowerCase();
 
-    // 💬 conversación normal
+    // 💬 respuestas básicas
     if (text.includes("hola")) {
       return res.json({ reply: `Hola ${name || ""} 👋` });
     }
-
     if (text.includes("gracias")) {
-      return res.json({ reply: `${name || ""} de nada 🚆` });
+      return res.json({ reply: `De nada ${name || ""} 👍` });
     }
-
     if (text.includes("chau")) {
       return res.json({ reply: `Chau ${name || ""} 👋` });
     }
 
-    // 🤖 IA FUERTE (sin wikipedia)
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    // 🔎 intento de búsqueda simple (Wikipedia mejorada)
+    let info = "";
+    try {
+      const search = await fetch(
+        `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(message)}&format=json&origin=*`
+      );
+      const searchData = await search.json();
+
+      const title = searchData?.query?.search?.[0]?.title;
+
+      if (title) {
+        const summary = await fetch(
+          `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+        );
+        const sumData = await summary.json();
+        info = sumData.extract || "";
+      }
+    } catch {}
+
+    // 🤖 IA PRINCIPAL
+    const aiRes = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-5",
+        model: "gpt-5-mini",
         input: `
-Sos FerroBloggers 🚆, experto en trenes de Argentina.
+Sos una IA conversacional tipo ChatGPT.
 
-Sabés sobre:
-- Trenes Argentinos
-- NCA
-- Ferrosur Roca
-- Belgrano Cargas
-- Metrovías
-- líneas Roca, Mitre, Sarmiento, San Martín
+Usuario: ${name || "usuario"}
 
-Reglas IMPORTANTES:
-- Respondé SIEMPRE algo útil
-- Nunca digas "no sé"
-- Explicá claro
-- Usá el nombre ${name || ""}
-- Respondé como ChatGPT (natural, no robótico)
+Información encontrada:
+${info}
 
 Pregunta: ${message}
+
+Reglas:
+- Respondé natural y claro
+- Podés hablar de cualquier tema
+- Si hay info arriba, usala
+- Si no, respondé igual con conocimiento general
+- Nunca digas "no sé"
 `
       })
     });
 
-    const data = await response.json();
+    const data = await aiRes.json();
 
     let reply = data.output?.[0]?.content?.[0]?.text;
 
     if (!reply) {
-      reply = `${name || ""}, es sobre trenes argentinos 🚆`;
+      reply = "No pude generar respuesta 😅";
     }
 
     res.json({ reply });
