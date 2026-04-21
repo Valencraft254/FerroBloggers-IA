@@ -1,46 +1,68 @@
 export default async function handler(req, res) {
 
   try {
-    const { message, name } = req.body;
+    let { message, name } = req.body || {};
+    if (!message) return res.json({ reply: "Escribí algo 🚆" });
 
-    // 🧠 1. CORREGIR TEXTO
-    let fixed = message;
+    // 🧠 diccionario de correcciones
+    const corrections = {
+      "ola":"hola",
+      "holaa":"hola",
+      "komo":"como",
+      "ke":"que",
+      "k":"que",
+      "trn":"tren",
+      "trenens":"trenes",
+      "ferosur":"ferrosur",
+      "ferrosurr":"ferrosur",
+      "metrovias":"metrovías",
+      "sarmientoo":"sarmiento",
+      "mitree":"mitre",
+      "rokca":"roca",
+      "sanmartn":"san martin",
+      "belgran":"belgrano",
+      "n c a":"nca"
+    };
 
-    try {
-      const spell = await fetch(
-        `https://api.api-ninjas.com/v1/spellcheck?text=${encodeURIComponent(message)}`,
-        {
-          headers: { "X-Api-Key": process.env.SPELL_API_KEY }
-        }
-      );
+    // 🔧 normalizar
+    let fixed = message.toLowerCase();
 
-      const data = await spell.json();
-
-      // si hay sugerencias, usamos la primera
-      if (data?.corrections && data.corrections.length > 0) {
-        fixed = data.corrections[0].corrected || message;
-      }
-
-    } catch (e) {
-      console.log("spell error", e);
+    for (let wrong in corrections) {
+      const regex = new RegExp(`\\b${wrong}\\b`, "g");
+      fixed = fixed.replace(regex, corrections[wrong]);
     }
 
-    // 🧠 2. DETECTAR SI ES TREN
-    const text = fixed.toLowerCase();
+    // 🚆 detectar si es tema tren
+    const trainWords = [
+      "tren","trenes","linea","estacion","ramal",
+      "roca","sarmiento","mitre","san martin",
+      "belgrano","urquiza","nca","ferrosur",
+      "cargas","subte"
+    ];
 
-    const isTrain = [
-      "tren","linea","roca","sarmiento","mitre",
-      "san martin","belgrano","nca","ferrosur",
-      "cargas","estacion"
-    ].some(k => text.includes(k));
+    const isTrain = trainWords.some(w => fixed.includes(w));
 
+    // 💬 saludo
+    if (fixed.includes("hola")) {
+      return res.json({
+        reply: `Hola ${name || ""} 👋 ¿Qué querés saber sobre trenes argentinos?`
+      });
+    }
+
+    if (fixed.includes("gracias")) {
+      return res.json({
+        reply: `${name || ""} de nada 🚆`
+      });
+    }
+
+    // ❌ fuera de tema
     if (!isTrain) {
       return res.json({
         reply: "Solo puedo dar información de trenes argentinos 🚆"
       });
     }
 
-    // 🤖 3. IA RESPUESTA EDUCADA
+    // 🤖 IA
     const ai = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -50,7 +72,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
-Sos Ferrobloggers 🚆
+Sos Ferrobloggers 🚆 experto en trenes argentinos.
 
 Usuario: ${name || "usuario"}
 
@@ -58,19 +80,18 @@ Mensaje original: ${message}
 Mensaje corregido: ${fixed}
 
 Reglas:
-- Respondé educadamente
-- Entendé errores de escritura
+- Responder claro
+- Usar el mensaje corregido
 - Solo trenes argentinos
-- Si es saludo, responder amable
+- Explicar bien
 
 Pregunta: ${fixed}
 `
       })
     });
 
-    const aiData = await ai.json();
-
-    let reply = aiData?.output?.[0]?.content?.[0]?.text;
+    const data = await ai.json();
+    let reply = data?.output?.[0]?.content?.[0]?.text;
 
     if (!reply) {
       reply = "Solo puedo dar información de trenes argentinos 🚆";
