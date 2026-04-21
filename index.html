@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferrobloggers</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial;}
+
+body{
+    height:100vh;
+    overflow:hidden;
+    color:white;
+}
+
+/* 🎬 VIDEO FONDO */
+#bg-video{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:-2;
+}
+
+/* capa oscura */
+.overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    z-index:-1;
+}
+
+/* 📱 CHAT */
+.chat{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+}
+
+/* HEADER */
+.header{
+    padding:15px;
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(10px);
+}
+
+/* MENSAJES */
+.messages{
+    flex:1;
+    padding:15px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+/* BURBUJAS */
+.msg{
+    max-width:75%;
+    padding:12px 15px;
+    border-radius:18px;
+    animation:fade .2s ease;
+}
+
+.bot{
+    background:rgba(255,255,255,0.1);
+    align-self:flex-start;
+}
+
+.user{
+    background:linear-gradient(45deg,#00ffff,#ff00ff);
+    color:black;
+    align-self:flex-end;
+    font-weight:bold;
+}
+
+@keyframes fade{
+    from{opacity:0;transform:translateY(5px);}
+    to{opacity:1;}
+}
+
+/* INPUT */
+.input-area{
+    display:flex;
+    padding:10px;
+    background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(10px);
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:20px;
+    outline:none;
+}
+
+button{
+    margin-left:10px;
+    width:45px;
+    height:45px;
+    border:none;
+    border-radius:50%;
+    background:linear-gradient(45deg,#00ffff,#ff00ff);
+    cursor:pointer;
+    color:white;
+    font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🎬 VIDEO -->
+<video autoplay muted loop id="bg-video">
+  <source src="video.mp4" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<div class="chat">
+
+<div class="header">🚆 Ferrobloggers</div>
+
+<div id="messages" class="messages"></div>
+
+<div class="input-area">
+    <input id="input" placeholder="Escribí algo...">
+    <button onclick="send()">➤</button>
+</div>
+
+</div>
+
+<script>
+let userName = localStorage.getItem("name");
+const messages = document.getElementById("messages");
+
+function addMessage(text,type){
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+    div.innerText = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+async function send(){
+    const input = document.getElementById("input");
+    const text = input.value.trim();
+    if(!text) return;
+
+    if(!userName){
+        userName = text;
+        localStorage.setItem("name", userName);
+        addMessage(text,"user");
+        addMessage(`Bienvenido ${userName} 🚆`,"bot");
+        input.value="";
+        return;
+    }
+
+    addMessage(text,"user");
+    input.value="";
+
+    const loading = addMessage("Pensando...","bot");
+
+    try{
+        const res = await fetch("/api/chat",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({message:text,name:userName})
+        });
+
+        const data = await res.json();
+
+        messages.lastChild.innerText = data.reply;
+
+    }catch{
+        messages.lastChild.innerText = "Error ⚠️";
+    }
+}
+
+/* inicio */
+if(!userName){
+    addMessage("Hola 👋 ¿Cómo te llamás?","bot");
+}else{
+    addMessage(`Hola ${userName} 🚆`,"bot");
+}
+
+document.getElementById("input").addEventListener("keypress", e=>{
+    if(e.key==="Enter") send();
+});
+</script>
+
+</body>
+</html>
