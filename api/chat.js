@@ -1,25 +1,38 @@
 export default async function handler(req, res) {
 
   try {
-    const { message, name } = req.body || {};
-    if (!message) return res.json({ reply: "Escribí algo 🚆" });
+    const { message, name } = req.body;
 
-    const normalize = (t) =>
-      t.toLowerCase()
-       .normalize("NFD")
-       .replace(/[\u0300-\u036f]/g, "")
-       .replace(/\s+/g,"");
+    // 🧠 1. CORREGIR TEXTO
+    let fixed = message;
 
-    const clean = normalize(message);
+    try {
+      const spell = await fetch(
+        `https://api.api-ninjas.com/v1/spellcheck?text=${encodeURIComponent(message)}`,
+        {
+          headers: { "X-Api-Key": process.env.SPELL_API_KEY }
+        }
+      );
 
-    // 🚆 palabras clave amplias (con errores incluidos)
-    const keys = [
-      "tren","trenes","ferrocarril","linea","estacion","ramal",
-      "roca","sarmiento","mitre","sanmartin","belgrano","urquiza",
-      "nca","ferrosur","cargas","subte","metrovias","sofse"
-    ];
+      const data = await spell.json();
 
-    const isTrain = keys.some(k => clean.includes(k));
+      // si hay sugerencias, usamos la primera
+      if (data?.corrections && data.corrections.length > 0) {
+        fixed = data.corrections[0].corrected || message;
+      }
+
+    } catch (e) {
+      console.log("spell error", e);
+    }
+
+    // 🧠 2. DETECTAR SI ES TREN
+    const text = fixed.toLowerCase();
+
+    const isTrain = [
+      "tren","linea","roca","sarmiento","mitre",
+      "san martin","belgrano","nca","ferrosur",
+      "cargas","estacion"
+    ].some(k => text.includes(k));
 
     if (!isTrain) {
       return res.json({
@@ -27,8 +40,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🤖 IA con base grande
-    const aiRes = await fetch("https://api.openai.com/v1/responses", {
+    // 🤖 3. IA RESPUESTA EDUCADA
+    const ai = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -37,32 +50,31 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
-Sos Ferrobloggers 🚆 experto TOTAL en trenes argentinos.
+Sos Ferrobloggers 🚆
 
-BASE:
-- Trenes Argentinos: pasajeros (Roca, Sarmiento, Mitre, San Martín, Belgrano Sur)
-- NCA: cargas centro
-- Ferrosur Roca: cargas sur
-- Belgrano Cargas: norte
-- Metrovías: subte y Urquiza
+Usuario: ${name || "usuario"}
 
-LÍNEAS:
-- Roca, Sarmiento, Mitre, San Martín, Belgrano Sur, Urquiza
+Mensaje original: ${message}
+Mensaje corregido: ${fixed}
 
-REGLAS:
-- Entender errores (ej: "ferosur", "metrovias")
-- Responder claro
-- Usar nombre ${name || ""}
-- Nunca salir del tema trenes
+Reglas:
+- Respondé educadamente
+- Entendé errores de escritura
+- Solo trenes argentinos
+- Si es saludo, responder amable
 
-Pregunta: ${message}
+Pregunta: ${fixed}
 `
       })
     });
 
-    const data = await aiRes.json();
-    const reply = data?.output?.[0]?.content?.[0]?.text
-      || "Solo puedo dar información de trenes argentinos 🚆";
+    const aiData = await ai.json();
+
+    let reply = aiData?.output?.[0]?.content?.[0]?.text;
+
+    if (!reply) {
+      reply = "Solo puedo dar información de trenes argentinos 🚆";
+    }
 
     res.json({ reply });
 
