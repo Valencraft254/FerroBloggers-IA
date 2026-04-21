@@ -1,27 +1,70 @@
 export default async function handler(req, res) {
   const { message, name } = req.body;
+  const text = message.toLowerCase();
 
-  // base simple de datos reales
-  const db = {
-    "nca": "Nuevo Central Argentino es una empresa privada de cargas que opera en el centro del país.",
-    "ferrosur": "Ferrosur Roca opera trenes de carga principalmente en el sur de Buenos Aires y hacia la Patagonia.",
-    "mitre": "La línea Mitre usa trenes eléctricos CSR chinos en el ramal Tigre y diésel en otros ramales.",
-    "roca": "La línea Roca usa trenes eléctricos CSR y conecta Constitución con zona sur.",
-    "sarmiento": "La línea Sarmiento usa trenes eléctricos CSR que van de Once a Moreno.",
-    "belgrano cargas": "Belgrano Cargas transporta productos agrícolas en el norte del país.",
-    "tren de carga": "En Argentina los más conocidos son NCA, Ferrosur Roca y Belgrano Cargas."
-  };
+  // 🧠 respuestas humanas básicas
+  if (text.includes("gracias")) {
+    return res.json({ reply: `${name || ""} de nada 🚆` });
+  }
 
-  function searchDB(text){
-    text = text.toLowerCase();
-    for(let key in db){
-      if(text.includes(key)) return db[key];
+  if (text.includes("hola")) {
+    return res.json({ reply: `Hola ${name || ""} 👋` });
+  }
+
+  // 📚 base MUCHO más completa
+  const db = [
+    {
+      keys:["nca","nuevo central argentino"],
+      value:"NCA es una empresa privada de cargas que opera principalmente en el centro del país."
+    },
+    {
+      keys:["ferrosur"],
+      value:"Ferrosur Roca transporta cargas en el sur de Buenos Aires y conecta con puertos."
+    },
+    {
+      keys:["mitre"],
+      value:"La línea Mitre usa trenes eléctricos CSR chinos en el ramal Tigre y diésel en otros ramales."
+    },
+    {
+      keys:["roca"],
+      value:"La línea Roca conecta Constitución con zona sur y usa trenes eléctricos modernos."
+    },
+    {
+      keys:["sarmiento"],
+      value:"La línea Sarmiento conecta Once con Moreno usando trenes eléctricos."
+    },
+    {
+      keys:["belgrano cargas"],
+      value:"Belgrano Cargas transporta granos y productos en el norte argentino."
+    },
+    {
+      keys:["tren de carga","carga"],
+      value:"En Argentina destacan NCA, Ferrosur Roca y Belgrano Cargas como principales operadores."
+    }
+  ];
+
+  function search(text){
+    for (let item of db){
+      for (let k of item.keys){
+        if(text.includes(k)){
+          return item.value;
+        }
+      }
     }
     return null;
   }
 
+  // 🔍 BUSCAR PRIMERO EN BASE
+  const found = search(text);
+
+  if(found){
+    return res.json({
+      reply: `${name ? name + ", " : ""}${found}`
+    });
+  }
+
+  // 🤖 SI NO ENCUENTRA → IA REAL
   try {
-    // intento IA
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -30,42 +73,33 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-5-mini",
-        input: [
-          {
-            role: "system",
-            content: `
-Sos FerroBloggers 🚆 experto en trenes de Argentina.
+        input: `
+Respondé como experto en trenes argentinos.
 
-- Respondé SIEMPRE con info útil
+Usuario: ${name}
+Pregunta: ${message}
+
+Reglas:
 - Nunca digas "no tengo info"
-- Si no sabés exacto, explicá igual
-- Usá el nombre (${name}) si existe
+- Explicá aunque no sea exacto
+- Respondé natural
 `
-          },
-          { role: "user", content: message }
-        ]
       })
     });
 
     const data = await response.json();
+
     let reply = data.output?.[0]?.content?.[0]?.text;
 
-    // fallback si IA falla
-    if (!reply || reply.toLowerCase().includes("no tengo")) {
-      const dbResult = searchDB(message);
-
-      if (dbResult) {
-        reply = `${name ? name + ", " : ""}${dbResult}`;
-      } else {
-        reply = `${name ? name + ", " : ""}es un tema de trenes argentinos 🚆, por ejemplo NCA, Ferrosur o líneas como Mitre y Roca.`;
-      }
+    if(!reply){
+      reply = `${name ? name + ", " : ""}eso está relacionado con trenes argentinos 🚆`;
     }
 
-    res.status(200).json({ reply });
+    res.json({ reply });
 
   } catch {
-    res.status(200).json({
-      reply: `${name ? name + ", " : ""}error al buscar datos 🚆`
+    res.json({
+      reply: `${name ? name + ", " : ""}hubo un error buscando info 🚆`
     });
   }
 }
