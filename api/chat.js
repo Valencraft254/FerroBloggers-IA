@@ -4,65 +4,80 @@ export default async function handler(req, res) {
     let { message, name } = req.body || {};
     if (!message) return res.json({ reply: "Escribí algo 🚆" });
 
-    // 🧠 diccionario de correcciones
-    const corrections = {
-      "ola":"hola",
-      "holaa":"hola",
-      "komo":"como",
-      "ke":"que",
-      "k":"que",
-      "trn":"tren",
-      "trenens":"trenes",
-      "ferosur":"ferrosur",
-      "ferrosurr":"ferrosur",
-      "metrovias":"metrovías",
-      "sarmientoo":"sarmiento",
-      "mitree":"mitre",
-      "rokca":"roca",
-      "sanmartn":"san martin",
-      "belgran":"belgrano",
-      "n c a":"nca"
-    };
+    const text = message.toLowerCase();
 
-    // 🔧 normalizar
-    let fixed = message.toLowerCase();
-
-    for (let wrong in corrections) {
-      const regex = new RegExp(`\\b${wrong}\\b`, "g");
-      fixed = fixed.replace(regex, corrections[wrong]);
-    }
-
-    // 🚆 detectar si es tema tren
-    const trainWords = [
-      "tren","trenes","linea","estacion","ramal",
-      "roca","sarmiento","mitre","san martin",
-      "belgrano","urquiza","nca","ferrosur",
-      "cargas","subte"
-    ];
-
-    const isTrain = trainWords.some(w => fixed.includes(w));
-
-    // 💬 saludo
-    if (fixed.includes("hola")) {
+    // 💬 RESPUESTAS NORMALES
+    if (text.includes("hola")) {
       return res.json({
         reply: `Hola ${name || ""} 👋 ¿Qué querés saber sobre trenes argentinos?`
       });
     }
 
-    if (fixed.includes("gracias")) {
+    if (text.includes("gracias")) {
       return res.json({
         reply: `${name || ""} de nada 🚆`
       });
     }
 
-    // ❌ fuera de tema
+    // 🚆 BASE DE DATOS
+    const trains = {
+      roca: {
+        nombre: "Línea Roca",
+        recorrido: "Constitución → La Plata / Ezeiza / Bosques",
+        tipo: "eléctrico"
+      },
+      sarmiento: {
+        nombre: "Línea Sarmiento",
+        recorrido: "Once → Moreno",
+        tipo: "eléctrico"
+      },
+      mitre: {
+        nombre: "Línea Mitre",
+        recorrido: "Retiro → Tigre / Suárez",
+        tipo: "eléctrico"
+      },
+      sanmartin: {
+        nombre: "Línea San Martín",
+        recorrido: "Retiro → Pilar",
+        tipo: "diésel"
+      },
+      nca: {
+        nombre: "Nuevo Central Argentino",
+        tipo: "cargas"
+      },
+      ferrosur: {
+        nombre: "Ferrosur Roca",
+        tipo: "cargas"
+      }
+    };
+
+    // 🔎 BUSCAR COINCIDENCIA
+    for (let key in trains) {
+      if (text.includes(key)) {
+        const t = trains[key];
+
+        return res.json({
+          reply: `
+🚆 ${t.nombre}
+
+Recorrido: ${t.recorrido || "—"}
+Tipo: ${t.tipo || "—"}
+`
+        });
+      }
+    }
+
+    // ❌ NO ES TREN
+    const isTrain = ["tren","linea","roca","sarmiento","mitre","nca","ferrosur"]
+      .some(k => text.includes(k));
+
     if (!isTrain) {
       return res.json({
         reply: "Solo puedo dar información de trenes argentinos 🚆"
       });
     }
 
-    // 🤖 IA
+    // 🤖 IA COMO RESPALDO
     const ai = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -74,32 +89,24 @@ export default async function handler(req, res) {
         input: `
 Sos Ferrobloggers 🚆 experto en trenes argentinos.
 
-Usuario: ${name || "usuario"}
+Usuario: ${name || ""}
 
-Mensaje original: ${message}
-Mensaje corregido: ${fixed}
+Pregunta: ${message}
 
-Reglas:
-- Responder claro
-- Usar el mensaje corregido
-- Solo trenes argentinos
-- Explicar bien
-
-Pregunta: ${fixed}
+Respondé claro y útil.
 `
       })
     });
 
     const data = await ai.json();
-    let reply = data?.output?.[0]?.content?.[0]?.text;
 
-    if (!reply) {
-      reply = "Solo puedo dar información de trenes argentinos 🚆";
-    }
+    const reply =
+      data?.output?.[0]?.content?.[0]?.text ||
+      "Solo puedo dar información de trenes argentinos 🚆";
 
     res.json({ reply });
 
-  } catch {
+  } catch (e) {
     res.json({ reply: "Error ⚠️" });
   }
 }
