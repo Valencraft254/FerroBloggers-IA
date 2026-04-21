@@ -1,71 +1,34 @@
 export default async function handler(req, res) {
   const { message, name } = req.body;
+
   const text = message.toLowerCase();
 
-  // 🧠 respuestas humanas básicas
-  if (text.includes("gracias")) {
-    return res.json({ reply: `${name || ""} de nada 🚆` });
-  }
-
+  // respuestas básicas
   if (text.includes("hola")) {
     return res.json({ reply: `Hola ${name || ""} 👋` });
   }
-
-  // 📚 base MUCHO más completa
-  const db = [
-    {
-      keys:["nca","nuevo central argentino"],
-      value:"NCA es una empresa privada de cargas que opera principalmente en el centro del país."
-    },
-    {
-      keys:["ferrosur"],
-      value:"Ferrosur Roca transporta cargas en el sur de Buenos Aires y conecta con puertos."
-    },
-    {
-      keys:["mitre"],
-      value:"La línea Mitre usa trenes eléctricos CSR chinos en el ramal Tigre y diésel en otros ramales."
-    },
-    {
-      keys:["roca"],
-      value:"La línea Roca conecta Constitución con zona sur y usa trenes eléctricos modernos."
-    },
-    {
-      keys:["sarmiento"],
-      value:"La línea Sarmiento conecta Once con Moreno usando trenes eléctricos."
-    },
-    {
-      keys:["belgrano cargas"],
-      value:"Belgrano Cargas transporta granos y productos en el norte argentino."
-    },
-    {
-      keys:["tren de carga","carga"],
-      value:"En Argentina destacan NCA, Ferrosur Roca y Belgrano Cargas como principales operadores."
-    }
-  ];
-
-  function search(text){
-    for (let item of db){
-      for (let k of item.keys){
-        if(text.includes(k)){
-          return item.value;
-        }
-      }
-    }
-    return null;
+  if (text.includes("gracias")) {
+    return res.json({ reply: `De nada ${name || ""} 🚆` });
+  }
+  if (text.includes("chau")) {
+    return res.json({ reply: `Chau ${name || ""} 👋` });
   }
 
-  // 🔍 BUSCAR PRIMERO EN BASE
-  const found = search(text);
-
-  if(found){
-    return res.json({
-      reply: `${name ? name + ", " : ""}${found}`
-    });
-  }
-
-  // 🤖 SI NO ENCUENTRA → IA REAL
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    // 🔎 BUSCAR EN INTERNET (DuckDuckGo)
+    const searchRes = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(message + " trenes Argentina")}&format=json`
+    );
+
+    const searchData = await searchRes.json();
+
+    const snippet =
+      searchData.Abstract ||
+      searchData.RelatedTopics?.[0]?.Text ||
+      "";
+
+    // 🤖 IA resume mejor
+    const aiRes = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -74,32 +37,34 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
-Respondé como experto en trenes argentinos.
+Sos FerroBloggers 🚆.
 
-Usuario: ${name}
+Usá esta info real encontrada en internet:
+${snippet}
+
 Pregunta: ${message}
 
 Reglas:
-- Nunca digas "no tengo info"
-- Explicá aunque no sea exacto
-- Respondé natural
+- Respondé claro
+- Si no hay info suficiente, explicá igual con conocimiento general
+- Usá el nombre ${name || ""}
 `
       })
     });
 
-    const data = await response.json();
+    const aiData = await aiRes.json();
 
-    let reply = data.output?.[0]?.content?.[0]?.text;
+    let reply = aiData.output?.[0]?.content?.[0]?.text;
 
-    if(!reply){
-      reply = `${name ? name + ", " : ""}eso está relacionado con trenes argentinos 🚆`;
+    if (!reply) {
+      reply = `${name || ""}, es información sobre trenes argentinos 🚆`;
     }
 
     res.json({ reply });
 
-  } catch {
+  } catch (error) {
     res.json({
-      reply: `${name ? name + ", " : ""}hubo un error buscando info 🚆`
+      reply: `${name || ""}, hubo un error buscando info en internet 🚆`
     });
   }
 }
