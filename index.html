@@ -328,6 +328,33 @@ if(!name){
 }else{
   addMessage(`Hola ${name} 🚆`, "bot");
 }
+<div class="card">
+  <h2>🚆 Información oficial</h2>
+  <div id="links"></div>
+</div>
+
+<script>
+const fuentes = [
+  {nombre:"NCA",url:"https://nca.com.ar/"},
+  {nombre:"CNRT Cargas",url:"https://www.argentina.gob.ar/transporte/cnrt/lineas-de-trenes-cargas"},
+  {nombre:"Trenes Argentinos Cargas",url:"https://www.argentina.gob.ar/transporte/trenes-argentinos-cargas"},
+  {nombre:"Ferroexpreso Pampeano",url:"https://www.scp.com.ar/ferroexpreso-pampeano.php"},
+  {nombre:"Buenos Aires - Rosario",url:"https://www.argentina.gob.ar/transporte/trenes-argentinos/horarios-tarifas-y-recorridos/servicios-regionales-larga-distancia/buenosaires-rosario"},
+  {nombre:"Línea Mitre",url:"https://es.wikipedia.org/wiki/L%C3%ADnea_Mitre"},
+  {nombre:"Pasajes Larga Distancia",url:"https://www.argentina.gob.ar/transporte/trenes-argentinos/pasajes-larga-distancia"}
+];
+
+const container = document.getElementById("links");
+
+fuentes.forEach(f => {
+  const a = document.createElement("a");
+  a.href = f.url;
+  a.target = "_blank";
+  a.innerText = "🔗 " + f.nombre;
+  a.style.display = "block";
+  a.style.margin = "10px 0";
+  container.appendChild(a);
+});
 </script>
 
 </body>
