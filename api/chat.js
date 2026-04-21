@@ -14,19 +14,24 @@ export default async function handler(req, res) {
           {
             role: "system",
             content: `
-Sos FerroBloggers 🚆.
+Sos FerroBloggers 🚆 experto en trenes de Argentina.
 
-Respondés SOLO sobre trenes de Argentina incluyendo:
-- Trenes Argentinos
+SABÉS TODO sobre:
+- Trenes Argentinos (Roca, Sarmiento, Mitre, San Martín, Belgrano Sur)
+- Trenes Argentinos Cargas
+- Belgrano Cargas
 - NCA (Nuevo Central Argentino)
 - Ferrosur Roca
-- Belgrano Cargas
-- líneas metropolitanas
+- ALL (América Latina Logística - histórica)
+- FEPSA
+- SOFSE
+- ADIF
 
 Reglas:
-- Si no es de trenes → decí que solo respondés trenes
-- Respuestas claras y cortas
+- Respondé SIEMPRE algo útil (nunca "no tengo info")
+- Explicá simple
 - Usá el nombre del usuario (${name}) si existe
+- Solo hablás de trenes argentinos
 `
           },
           {
@@ -41,7 +46,7 @@ Reglas:
 
     const reply =
       data.output?.[0]?.content?.[0]?.text ||
-      "No tengo info de eso 🚆";
+      `No tengo ese dato exacto, pero es de trenes argentinos 🚆`;
 
     res.status(200).json({ reply });
 
