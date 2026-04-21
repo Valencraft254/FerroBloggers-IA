@@ -1,9 +1,8 @@
 export default async function handler(req, res) {
   const { message, name } = req.body;
-
   const text = message.toLowerCase();
 
-  // respuestas básicas
+  // respuestas normales
   if (text.includes("hola")) {
     return res.json({ reply: `Hola ${name || ""} 👋` });
   }
@@ -15,19 +14,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔎 BUSCAR EN INTERNET (DuckDuckGo)
-    const searchRes = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(message + " trenes Argentina")}&format=json`
+    // 🔎 BUSCAR EN WIKIPEDIA
+    const wikiRes = await fetch(
+      `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(message + " tren Argentina")}`
     );
 
-    const searchData = await searchRes.json();
+    let wikiText = "";
 
-    const snippet =
-      searchData.Abstract ||
-      searchData.RelatedTopics?.[0]?.Text ||
-      "";
+    if (wikiRes.ok) {
+      const wikiData = await wikiRes.json();
+      wikiText = wikiData.extract || "";
+    }
 
-    // 🤖 IA resume mejor
+    // 🤖 IA USA ESA INFO
     const aiRes = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -37,34 +36,34 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
-Sos FerroBloggers 🚆.
+Sos FerroBloggers 🚆 experto en trenes argentinos.
 
-Usá esta info real encontrada en internet:
-${snippet}
+Información encontrada:
+${wikiText}
 
 Pregunta: ${message}
 
 Reglas:
 - Respondé claro
-- Si no hay info suficiente, explicá igual con conocimiento general
 - Usá el nombre ${name || ""}
+- Si hay info de Wikipedia, usala
+- Si no, explicá igual con conocimiento general
 `
       })
     });
 
     const aiData = await aiRes.json();
-
     let reply = aiData.output?.[0]?.content?.[0]?.text;
 
     if (!reply) {
-      reply = `${name || ""}, es información sobre trenes argentinos 🚆`;
+      reply = `${name || ""}, eso es sobre trenes argentinos 🚆`;
     }
 
     res.json({ reply });
 
   } catch (error) {
     res.json({
-      reply: `${name || ""}, hubo un error buscando info en internet 🚆`
+      reply: `${name || ""}, error buscando info 🚆`
     });
   }
 }
