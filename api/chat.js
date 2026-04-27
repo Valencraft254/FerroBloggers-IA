@@ -1,48 +1,52 @@
 export default async function handler(req, res) {
+
   try {
     let { message } = req.body || {};
     if (!message) return res.json({ reply: "Escribí algo 🚆" });
 
-    // 🔎 1. LEER TU WEB
-    let contenido = "";
+    // 🔎 buscar info (sin mostrar)
+    let info = "";
 
     try {
-      const page = await fetch("https://infotrain-dtgv.vercel.app/");
-      const html = await page.text();
+      const search = await fetch(
+        `https://serpapi.com/search.json?q=${encodeURIComponent(message + " trenes Argentina")}&num=5&api_key=${process.env.SERP_API_KEY}`
+      );
 
-      contenido = html
-        .replace(/<script[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ");
+      const data = await search.json();
+
+      if (data?.organic_results) {
+        info = data.organic_results
+          .map(r => r.snippet)
+          .join("\n");
+      }
 
     } catch (e) {
-      console.log("error leyendo web", e);
+      console.log("error búsqueda", e);
     }
 
-    // ✂️ 2. CORTAR TEXTO (importante para IA)
-    const textoCorto = contenido.slice(0, 4000);
-
-    // 🤖 3. IA GENERA RESPUESTA
+    // 🤖 IA (usa info pero no la muestra)
     const ai = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
+      method:"POST",
+      headers:{
+        "Authorization":`Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type":"application/json"
       },
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
 Sos Ferrobloggers 🚆 experto en trenes argentinos.
 
-Usá SOLO esta información de la web:
-${textoCorto}
+Usá esta información para responder, pero NO menciones fuentes ni páginas:
+${info}
 
-Pregunta del usuario:
+Pregunta:
 ${message}
 
-Respondé como una explicación natural (no copies texto).
-Si no encontrás info, decí:
+Respondé de forma natural, como explicación.
+Ejemplo:
+"Ferrosur Roca usa las vías del Roca..."
+
+Si no entendés:
 "No entendí, ¿me explicás de nuevo? 🇦🇷"
 `
       })
@@ -53,8 +57,6 @@ Si no encontrás info, decí:
     let reply =
       data?.output?.[0]?.content?.[0]?.text ||
       "No entendí, ¿me explicás de nuevo? 🇦🇷";
-
-`;
 
     res.json({ reply });
 
