@@ -1,83 +1,29 @@
 export default async function handler(req, res) {
-
   try {
-    let { message, name } = req.body || {};
+    let { message } = req.body || {};
     if (!message) return res.json({ reply: "Escribí algo 🚆" });
 
-    const text = message.toLowerCase();
+    // 🔎 1. LEER TU WEB
+    let contenido = "";
 
-    // 💬 RESPUESTAS NORMALES
-    if (text.includes("hola")) {
-      return res.json({
-        reply: `Hola ${name || ""} 👋 ¿Qué querés saber sobre trenes argentinos?`
-      });
+    try {
+      const page = await fetch("https://infotrain-dtgv.vercel.app/");
+      const html = await page.text();
+
+      contenido = html
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ");
+
+    } catch (e) {
+      console.log("error leyendo web", e);
     }
 
-    if (text.includes("gracias")) {
-      return res.json({
-        reply: `${name || ""} de nada 🚆`
-      });
-    }
+    // ✂️ 2. CORTAR TEXTO (importante para IA)
+    const textoCorto = contenido.slice(0, 4000);
 
-    // 🚆 BASE DE DATOS
-    const trains = {
-      roca: {
-        nombre: "Línea Roca",
-        recorrido: "Constitución → La Plata / Ezeiza / Bosques",
-        tipo: "eléctrico"
-      },
-      sarmiento: {
-        nombre: "Línea Sarmiento",
-        recorrido: "Once → Moreno",
-        tipo: "eléctrico"
-      },
-      mitre: {
-        nombre: "Línea Mitre",
-        recorrido: "Retiro → Tigre / Suárez",
-        tipo: "eléctrico"
-      },
-      sanmartin: {
-        nombre: "Línea San Martín",
-        recorrido: "Retiro → Pilar",
-        tipo: "diésel"
-      },
-      nca: {
-        nombre: "Nuevo Central Argentino",
-        tipo: "cargas"
-      },
-      ferrosur: {
-        nombre: "Ferrosur Roca",
-        tipo: "cargas"
-      }
-    };
-
-    // 🔎 BUSCAR COINCIDENCIA
-    for (let key in trains) {
-      if (text.includes(key)) {
-        const t = trains[key];
-
-        return res.json({
-          reply: `
-🚆 ${t.nombre}
-
-Recorrido: ${t.recorrido || "—"}
-Tipo: ${t.tipo || "—"}
-`
-        });
-      }
-    }
-
-    // ❌ NO ES TREN
-    const isTrain = ["tren","linea","roca","sarmiento","mitre","nca","ferrosur"]
-      .some(k => text.includes(k));
-
-    if (!isTrain) {
-      return res.json({
-        reply: "Solo puedo dar información de trenes argentinos 🚆"
-      });
-    }
-
-    // 🤖 IA COMO RESPALDO
+    // 🤖 3. IA GENERA RESPUESTA
     const ai = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -89,24 +35,38 @@ Tipo: ${t.tipo || "—"}
         input: `
 Sos Ferrobloggers 🚆 experto en trenes argentinos.
 
-Usuario: ${name || ""}
+Usá SOLO esta información de la web:
+${textoCorto}
 
-Pregunta: ${message}
+Pregunta del usuario:
+${message}
 
-Respondé claro y útil.
+Respondé como una explicación natural (no copies texto).
+Si no encontrás info, decí:
+"No entendí, ¿me explicás de nuevo? 🇦🇷"
 `
       })
     });
 
     const data = await ai.json();
 
-    const reply =
+    let reply =
       data?.output?.[0]?.content?.[0]?.text ||
-      "Solo puedo dar información de trenes argentinos 🚆";
+      "No entendí, ¿me explicás de nuevo? 🇦🇷";
+
+    // 🔗 cuadro con fuente
+    reply += `
+
+━━━━━━━━━━━━━━━━━━
+📎 Fuente
+infotrain-dtgv.vercel.app
+━━━━━━━━━━━━━━━━━━
+`;
 
     res.json({ reply });
 
   } catch (e) {
+    console.error(e);
     res.json({ reply: "Error ⚠️" });
   }
 }
