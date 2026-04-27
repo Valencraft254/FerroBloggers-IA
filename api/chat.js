@@ -54,13 +54,6 @@ Si no encontrás info, decí:
       data?.output?.[0]?.content?.[0]?.text ||
       "No entendí, ¿me explicás de nuevo? 🇦🇷";
 
-    // 🔗 cuadro con fuente
-    reply += `
-
-━━━━━━━━━━━━━━━━━━
-📎 Fuente
-infotrain-dtgv.vercel.app
-━━━━━━━━━━━━━━━━━━
 `;
 
     res.json({ reply });
