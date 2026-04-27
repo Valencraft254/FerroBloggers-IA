@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       console.log("error búsqueda", e);
     }
 
-    // 🤖 IA (usa info pero no la muestra)
+    // 🤖 IA
     const ai = await fetch("https://api.openai.com/v1/responses", {
       method:"POST",
       headers:{
@@ -34,20 +34,18 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-5-mini",
         input: `
-Sos Ferrobloggers 🚆 experto en trenes argentinos.
+Sos Ferrobloggers experto en trenes argentinos.
 
-Usá esta información para responder, pero NO menciones fuentes ni páginas:
+Usá esta información para responder, pero NO menciones fuentes:
 ${info}
 
 Pregunta:
 ${message}
 
-Respondé de forma natural, como explicación.
-Ejemplo:
-"Ferrosur Roca usa las vías del Roca..."
+Respondé claro y natural.
 
 Si no entendés:
-"No entendí, ¿me explicás de nuevo? 🇦🇷"
+"No entendí, ¿me explicás de nuevo?"
 `
       })
     });
@@ -56,7 +54,7 @@ Si no entendés:
 
     let reply =
       data?.output?.[0]?.content?.[0]?.text ||
-      "No entendí, ¿me explicás de nuevo? 🇦🇷";
+      "No entendí, ¿me explicás de nuevo?";
 
     res.json({ reply });
 
