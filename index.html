@@ -27,7 +27,8 @@ header{
   width:40px;
   height:40px;
   border-radius:50%;
-  background:url("https://cdn-icons-png.flaticon.com/512/744/744465.png") center/cover;
+  background:url("bot.png") center/cover;
+  border:2px solid #00ffff55;
 }
 
 .title{
@@ -56,6 +57,7 @@ header{
   margin:8px;
   border-radius:15px;
   animation:fade .3s;
+  white-space:pre-line;
 }
 
 .user{
@@ -78,24 +80,44 @@ header{
   display:flex;
   padding:10px;
   background:#0b0b0b;
+  align-items:center;
 }
 
 #inputBox input{
   flex:1;
-  padding:10px;
+  padding:12px;
   border:none;
-  border-radius:20px;
+  border-radius:25px;
   background:#111;
   color:white;
+  outline:none;
 }
 
-#inputBox button{
+/* BOTÓN NUEVO */
+.sendBtn{
   margin-left:10px;
-  padding:10px 15px;
+  width:45px;
+  height:45px;
   border:none;
-  border-radius:20px;
+  border-radius:50%;
   background:linear-gradient(45deg,#00ffff,#ff00ff);
+  display:flex;
+  align-items:center;
+  justify-content:center;
   cursor:pointer;
+  box-shadow:0 0 10px #00ffff88;
+  transition:0.2s;
+}
+
+.sendBtn:hover{
+  transform:scale(1.1);
+}
+
+/* icono flecha */
+.sendBtn::before{
+  content:"➤";
+  font-size:18px;
+  color:#000;
 }
 </style>
 </head>
@@ -114,7 +136,7 @@ header{
 
 <div id="inputBox">
   <input id="msg" placeholder="Escribí sobre trenes...">
-  <button onclick="send()">Enviar</button>
+  <button class="sendBtn" onclick="send()"></button>
 </div>
 
 <script>
@@ -122,7 +144,6 @@ header{
 const chat = document.getElementById("chat");
 let name = prompt("¿Tu nombre?") || "Usuario";
 
-// agregar mensaje
 function addMsg(text, cls){
   let d = document.createElement("div");
   d.className = "msg " + cls;
@@ -131,7 +152,6 @@ function addMsg(text, cls){
   chat.scrollTop = chat.scrollHeight;
 }
 
-// enviar
 async function send(){
   let input = document.getElementById("msg");
   let text = input.value;
@@ -144,14 +164,10 @@ async function send(){
     let res = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        message:text,
-        name:name
-      })
+      body:JSON.stringify({message:text,name:name})
     });
 
     let data = await res.json();
-
     addMsg(data.reply || "No entendí, ¿me explicás de nuevo? 🇦🇷","bot");
 
   }catch{
@@ -159,7 +175,6 @@ async function send(){
   }
 }
 
-// enter
 document.getElementById("msg").addEventListener("keypress",e=>{
   if(e.key==="Enter") send();
 });
