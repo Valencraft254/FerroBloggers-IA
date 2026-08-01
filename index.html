@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FerroBloggers AI</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/6d9d5e7d0b.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div class="sidebar">
+
+    <div class="logo">
+        <img src="assets/avatar.png" alt="FerroBloggers AI">
+        <h2>FerroBloggers AI</h2>
+    </div>
+
+    <button id="newChat" class="new-chat">
+        <i class="fa-solid fa-plus"></i>
+        Nueva conversación
+    </button>
+
+    <div class="history">
+        <h3>Conversaciones</h3>
+
+        <ul id="historyList">
+            <li class="active">
+                🚆 Bienvenida
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<div class="main">
+
+<header>
+
+<div class="bot-info">
+
+<img src="assets/avatar.png" class="avatar">
+
+<div>
+
+<h2>FerroBloggers</h2>
+
+<p>Especialista en ferrocarriles del mundo</p>
+
+</div>
+
+</div>
+
+<div class="header-buttons">
+
+<button id="themeButton" title="Modo oscuro/claro">
+🌙
+</button>
+
+<button id="profileButton" title="Perfil">
+👤
+</button>
+
+</div>
+
+</header>
+
+<div id="chat" class="chat">
+
+<div class="message ai">
+
+<div class="bubble">
+
+<h3>🚆 ¡Hola!</h3>
+
+<p>Soy <b>FerroBloggers</b>, una inteligencia artificial especializada exclusivamente en el mundo ferroviario.</p>
+
+<p>Puedes preguntarme sobre:</p>
+
+<ul>
+<li>Locomotoras</li>
+<li>Trenes de alta velocidad</li>
+<li>Estaciones</li>
+<li>Ferrocarriles argentinos</li>
+<li>Material rodante</li>
+<li>Historia ferroviaria</li>
+<li>Infraestructura</li>
+</ul>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="typing" id="typing" style="display:none;">
+FerroBloggers está escribiendo...
+</div>
+
+<div class="input-area">
+
+<textarea
+id="prompt"
+placeholder="Escribe una pregunta sobre trenes..."
+rows="1"></textarea>
+
+<button id="sendButton">
+<i class="fa-solid fa-paper-plane"></i>
+Enviar
+</button>
+
+</div>
+
+</div>
+
+<div id="profileModal" class="modal">
+
+<div class="modal-content">
+
+<h2>Perfil de FerroBloggers</h2>
+
+<img src="assets/avatar.png" id="profileAvatar">
+
+<input type="file" id="avatarInput">
+
+<input
+type="text"
+id="botName"
+placeholder="Nombre de la IA"
+value="FerroBloggers">
+
+<textarea
+id="botDescription"
+placeholder="Descripción">
+
+Especialista en ferrocarriles del mundo.
+
+</textarea>
+
+<button id="saveProfile">
+Guardar perfil
+</button>
+
+</div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+  </html>
